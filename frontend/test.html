@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试页面</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50 p-8">
+    <h1 class="text-3xl font-bold mb-8">功能测试页面</h1>
+    
+    <!-- 测试按钮 -->
+    <div class="space-x-4 mb-8">
+        <button id="test-login" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg">测试登录模态框</button>
+        <button id="test-register" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg">测试注册模态框</button>
+        <button id="test-calendar" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg">测试日历点击</button>
+    </div>
+    
+    <!-- 原始按钮 -->
+    <div class="space-x-4 mb-8">
+        <button id="login-btn" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-200 rounded-lg shadow-sm transition-colors">原始登录按钮</button>
+        <button id="register-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors">原始注册按钮</button>
+    </div>
+    
+    <!-- 模拟日历日期 -->
+    <div class="mb-8">
+        <h2 class="text-xl font-bold mb-4">模拟日历日期</h2>
+        <div class="grid grid-cols-7 gap-2 w-80">
+            <div class="day-cell flex items-center justify-center h-10 w-10 rounded-full cursor-pointer transition-colors hover:bg-gray-100 has-tasks bg-blue-500 text-white font-bold">15</div>
+            <div class="day-cell flex items-center justify-center h-10 w-10 rounded-full cursor-pointer transition-colors hover:bg-gray-100">16</div>
+            <div class="day-cell flex items-center justify-center h-10 w-10 rounded-full cursor-pointer transition-colors hover:bg-gray-100 has-tasks">17</div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
+        <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md transform transition-transform duration-300 scale-95">
+            <h2 id="auth-modal-title" class="text-2xl font-bold text-gray-800 mb-6">登录</h2>
+            <form id="auth-form">
+                <div class="mb-4">
+                    <label for="auth-username" class="block text-gray-700 text-sm font-bold mb-2">用户名</label>
+                    <input type="text" id="auth-username" class="w-full px-4 py-3 bg-gray-100 rounded-lg border-transparent focus:border-blue-500 focus:bg-white focus:ring-0" required placeholder="请输入用户名">
+                </div>
+                <div class="mb-6">
+                    <label for="auth-password" class="block text-gray-700 text-sm font-bold mb-2">密码</label>
+                    <input type="password" id="auth-password" class="w-full px-4 py-3 bg-gray-100 rounded-lg border-transparent focus:border-blue-500 focus:bg-white focus:ring-0" required placeholder="请输入密码">
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" id="auth-cancel-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg transition-colors">取消</button>
+                    <button type="submit" id="auth-submit-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition-colors">登录</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 简化的测试脚本
+        const authModal = document.getElementById('auth-modal');
+        const authModalTitle = document.getElementById('auth-modal-title');
+        const authSubmitBtn = document.getElementById('auth-submit-btn');
+        const authForm = document.getElementById('auth-form');
+        const authCancelBtn = document.getElementById('auth-cancel-btn');
+        
+        const loginBtn = document.getElementById('login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        
+        const testLoginBtn = document.getElementById('test-login');
+        const testRegisterBtn = document.getElementById('test-register');
+        const testCalendarBtn = document.getElementById('test-calendar');
+
+        const showAuthModal = (mode) => {
+            console.log('显示认证模态框:', mode);
+            authModalTitle.textContent = mode === 'login' ? '登录' : '注册';
+            authSubmitBtn.textContent = mode === 'login' ? '登录' : '注册';
+            authForm.dataset.mode = mode;
+            authModal.classList.add('visible');
+            console.log('模态框类名:', authModal.className);
+        };
+
+        const hideAuthModal = () => {
+            authModal.classList.remove('visible');
+            authForm.reset();
+        };
+
+        // 测试按钮事件
+        testLoginBtn.addEventListener('click', () => {
+            console.log('测试登录按钮被点击');
+            showAuthModal('login');
+        });
+
+        testRegisterBtn.addEventListener('click', () => {
+            console.log('测试注册按钮被点击');
+            showAuthModal('register');
+        });
+
+        testCalendarBtn.addEventListener('click', () => {
+            alert('2024年12月15日的任务：\n\n• 完成数学作业 (待完成)\n• 复习英语单词 (已完成)');
+        });
+
+        // 原始按钮事件
+        loginBtn.addEventListener('click', () => {
+            console.log('原始登录按钮被点击');
+            showAuthModal('login');
+        });
+
+        registerBtn.addEventListener('click', () => {
+            console.log('原始注册按钮被点击');
+            showAuthModal('register');
+        });
+
+        // 模态框关闭事件
+        authCancelBtn.addEventListener('click', hideAuthModal);
+        authModal.addEventListener('click', (e) => e.target === authModal && hideAuthModal());
+
+        // 模拟日历点击
+        document.querySelectorAll('.day-cell').forEach(dayElement => {
+            dayElement.addEventListener('click', () => {
+                const day = dayElement.textContent;
+                if (day === '15') {
+                    alert(`2024年12月${day}日的任务：\n\n• 完成数学作业 (待完成)\n• 复习英语单词 (已完成)`);
+                } else if (day === '17') {
+                    alert(`2024年12月${day}日的任务：\n\n• 准备期末考试 (待完成)`);
+                } else {
+                    alert(`2024年12月${day}日没有任务`);
+                }
+            });
+        });
+
+        console.log('测试页面加载完成');
+        console.log('authModal:', authModal);
+        console.log('loginBtn:', loginBtn);
+        console.log('registerBtn:', registerBtn);
+    </script>
+</body>
+</html> 
