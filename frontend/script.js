@@ -6,7 +6,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let isLoggedIn = !!token;
     
     // --- API 配置 ---
-    const API_BASE_URL = '/api'; // 使用相对路径，与后端在同一域名
+    // 动态检测主机地址，支持本地开发和公网部署
+    const getCurrentHost = () => {
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        
+        // 如果是localhost或127.0.0.1，使用localhost（本地开发）
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:3001';
+        }
+        // 否则使用当前主机的3001端口（公网部署）
+        return `${protocol}//${hostname}:3001`;
+    };
+    
+    const API_BASE_URL = `${getCurrentHost()}/api`;
 
     // --- DOM 元素 ---
     const taskList = document.getElementById('task-list');

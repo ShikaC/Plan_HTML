@@ -32,14 +32,11 @@ const authenticateToken = (req, res, next) => {
 
 // --- 初始化 Express 应用 ---
 const app = express();
-const PORT = process.env.PORT || 3001; // 使用环境变量端口或默认3001
+const PORT = 3001; // 为后端API选择一个端口，避免与前端冲突
 
 // --- 中间件 (Middleware) ---
 app.use(cors()); // 允许所有来源的跨域请求，方便前后端联调
 app.use(express.json()); // 解析请求体中的JSON数据，例如从前端POST过来的登录信息
-
-// 静态文件服务 - 提供前端文件
-app.use(express.static(path.join(__dirname, '../frontend')));
 
 // --- 数据库设置 ---
 // 定义数据库文件的路径
@@ -268,14 +265,9 @@ app.post('/api/tasks/sync', authenticateToken, (req, res) => {
 });
 
 // --- 基本路由 ---
-// 根路径返回前端首页
+// 定义一个根路由，用于测试服务器是否正常运行
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
-
-// API健康检查
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: '学习计划API正在运行!' });
+  res.send('学习计划后端API正在运行!');
 });
 
 // --- 启动服务器 ---
