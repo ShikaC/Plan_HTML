@@ -1,0 +1,17 @@
+{
+  "name": "study-planner-app",
+  "version": "1.0.0",
+  "description": "学习计划管理应用",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "cd backend && npm install && node server.js",
+    "dev": "cd backend && npm install && node server.js",
+    "build": "cd backend && npm install"
+  },
+  "keywords": ["study", "planner", "education"],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+} 
