@@ -3,134 +3,361 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>测试页面</title>
+    <title>日历功能测试页面</title>
     <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* 任务状态小点样式 */
+        .status-dot {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .status-dot.red { background-color: #ef4444; }
+        .status-dot.orange { background-color: #f97316; }
+        .status-dot.green { background-color: #22c55e; }
+        
+        .day-cell {
+            position: relative;
+        }
+        
+        .selected-day {
+            border: 2px solid #3b82f6 !important;
+            background-color: #dbeafe !important;
+        }
+        
+        .task-item-filtered {
+            opacity: 0.3;
+            transform: scale(0.95);
+            transition: all 0.3s ease;
+        }
+        
+        .task-item-highlight {
+            opacity: 1;
+            transform: scale(1);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            border-left: 4px solid #3b82f6;
+        }
+    </style>
 </head>
-<body class="bg-gray-50 p-8">
-    <h1 class="text-3xl font-bold mb-8">功能测试页面</h1>
-    
-    <!-- 测试按钮 -->
-    <div class="space-x-4 mb-8">
-        <button id="test-login" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg">测试登录模态框</button>
-        <button id="test-register" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg">测试注册模态框</button>
-        <button id="test-calendar" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg">测试日历点击</button>
-    </div>
-    
-    <!-- 原始按钮 -->
-    <div class="space-x-4 mb-8">
-        <button id="login-btn" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-200 rounded-lg shadow-sm transition-colors">原始登录按钮</button>
-        <button id="register-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors">原始注册按钮</button>
-    </div>
-    
-    <!-- 模拟日历日期 -->
-    <div class="mb-8">
-        <h2 class="text-xl font-bold mb-4">模拟日历日期</h2>
-        <div class="grid grid-cols-7 gap-2 w-80">
-            <div class="day-cell flex items-center justify-center h-10 w-10 rounded-full cursor-pointer transition-colors hover:bg-gray-100 has-tasks bg-blue-500 text-white font-bold">15</div>
-            <div class="day-cell flex items-center justify-center h-10 w-10 rounded-full cursor-pointer transition-colors hover:bg-gray-100">16</div>
-            <div class="day-cell flex items-center justify-center h-10 w-10 rounded-full cursor-pointer transition-colors hover:bg-gray-100 has-tasks">17</div>
-        </div>
-    </div>
+<body class="bg-gray-50 font-sans antialiased">
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">日历功能测试</h1>
+            <p class="text-gray-500 mt-2">点击日期查看当天任务，状态小点表示完成情况</p>
+        </header>
 
-    <!-- Auth Modal -->
-    <div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
-        <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md transform transition-transform duration-300 scale-95">
-            <h2 id="auth-modal-title" class="text-2xl font-bold text-gray-800 mb-6">登录</h2>
-            <form id="auth-form">
-                <div class="mb-4">
-                    <label for="auth-username" class="block text-gray-700 text-sm font-bold mb-2">用户名</label>
-                    <input type="text" id="auth-username" class="w-full px-4 py-3 bg-gray-100 rounded-lg border-transparent focus:border-blue-500 focus:bg-white focus:ring-0" required placeholder="请输入用户名">
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- 左侧：任务列表区域 -->
+            <div class="space-y-6">
+                
+                <!-- 当前选择日期显示 -->
+                <div class="bg-white p-4 rounded-2xl shadow-lg">
+                    <h2 class="text-xl font-bold text-gray-700 mb-2">当前选择日期</h2>
+                    <p id="selected-date" class="text-lg text-blue-600 font-semibold">请点击日历选择日期</p>
+                    <p id="task-summary" class="text-sm text-gray-500 mt-1">点击日期查看任务详情</p>
                 </div>
-                <div class="mb-6">
-                    <label for="auth-password" class="block text-gray-700 text-sm font-bold mb-2">密码</label>
-                    <input type="password" id="auth-password" class="w-full px-4 py-3 bg-gray-100 rounded-lg border-transparent focus:border-blue-500 focus:bg-white focus:ring-0" required placeholder="请输入密码">
+
+                <!-- 任务列表 -->
+                <section class="bg-white p-6 rounded-2xl shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-gray-700">学习任务</h2>
+                        <div class="flex gap-2">
+                            <button id="show-all-btn" class="px-3 py-1 text-sm bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors">显示全部</button>
+                            <button id="show-today-btn" class="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors">仅显示当天</button>
+                        </div>
+                    </div>
+                    <div id="task-list" class="space-y-3 min-h-[300px]">
+                        <!-- 任务将由JavaScript动态生成 -->
+                    </div>
+                </section>
+
+                <!-- 状态说明 -->
+                <div class="bg-white p-4 rounded-2xl shadow-lg">
+                    <h3 class="text-lg font-bold text-gray-700 mb-3">状态小点说明</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-4 h-4 bg-red-500 rounded-full"></div>
+                            <span>红色：当天有任务，全部未完成</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-4 h-4 bg-orange-500 rounded-full"></div>
+                            <span>橙色：当天有任务，部分完成</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-4 h-4 bg-green-500 rounded-full"></div>
+                            <span>绿色：当天有任务，全部完成</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex justify-end space-x-4">
-                    <button type="button" id="auth-cancel-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg transition-colors">取消</button>
-                    <button type="submit" id="auth-submit-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg transition-colors">登录</button>
+
+            </div>
+
+            <!-- 右侧：日历区域 -->
+            <aside class="bg-white p-6 rounded-2xl shadow-lg">
+                <div id="calendar" class="w-full">
+                    <div class="flex items-center justify-between mb-4">
+                        <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-chevron-left text-gray-600"></i>
+                        </button>
+                        <h3 id="calendar-month-year" class="text-xl font-bold text-gray-700"></h3>
+                        <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                            <i class="fas fa-chevron-right text-gray-600"></i>
+                        </button>
+                    </div>
+                    <div id="calendar-weekdays" class="grid grid-cols-7 gap-2 text-center text-xs text-gray-500 font-semibold mb-2">
+                        <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-2">
+                        <!-- 日历将由JavaScript动态生成 -->
+                    </div>
                 </div>
-            </form>
-        </div>
+            </aside>
+        </main>
     </div>
 
     <script>
-        // 简化的测试脚本
-        const authModal = document.getElementById('auth-modal');
-        const authModalTitle = document.getElementById('auth-modal-title');
-        const authSubmitBtn = document.getElementById('auth-submit-btn');
-        const authForm = document.getElementById('auth-form');
-        const authCancelBtn = document.getElementById('auth-cancel-btn');
-        
-        const loginBtn = document.getElementById('login-btn');
-        const registerBtn = document.getElementById('register-btn');
-        
-        const testLoginBtn = document.getElementById('test-login');
-        const testRegisterBtn = document.getElementById('test-register');
-        const testCalendarBtn = document.getElementById('test-calendar');
+        // 模拟任务数据
+        const mockTasks = [
+            { id: 1, name: '完成数学作业', dueDate: '2024-12-15', completed: false },
+            { id: 2, name: '复习英语单词', dueDate: '2024-12-15', completed: true },
+            { id: 3, name: '阅读历史教材', dueDate: '2024-12-15', completed: false },
+            { id: 4, name: '准备期末考试', dueDate: '2024-12-17', completed: false },
+            { id: 5, name: '写作文练习', dueDate: '2024-12-17', completed: true },
+            { id: 6, name: '物理实验报告', dueDate: '2024-12-18', completed: true },
+            { id: 7, name: '化学练习题', dueDate: '2024-12-18', completed: true },
+            { id: 8, name: '生物复习笔记', dueDate: '2024-12-20', completed: false },
+            { id: 9, name: '地理地图练习', dueDate: '2024-12-22', completed: false },
+            { id: 10, name: '政治时事分析', dueDate: '2024-12-22', completed: false },
+            { id: 11, name: '体育锻炼计划', dueDate: '2024-12-25', completed: true }
+        ];
 
-        const showAuthModal = (mode) => {
-            console.log('显示认证模态框:', mode);
-            authModalTitle.textContent = mode === 'login' ? '登录' : '注册';
-            authSubmitBtn.textContent = mode === 'login' ? '登录' : '注册';
-            authForm.dataset.mode = mode;
-            authModal.classList.add('visible');
-            console.log('模态框类名:', authModal.className);
+        // DOM 元素
+        const calendarGrid = document.getElementById('calendar-grid');
+        const calendarMonthYear = document.getElementById('calendar-month-year');
+        const prevMonthBtn = document.getElementById('prev-month-btn');
+        const nextMonthBtn = document.getElementById('next-month-btn');
+        const taskList = document.getElementById('task-list');
+        const selectedDateElement = document.getElementById('selected-date');
+        const taskSummaryElement = document.getElementById('task-summary');
+        const showAllBtn = document.getElementById('show-all-btn');
+        const showTodayBtn = document.getElementById('show-today-btn');
+
+        // 状态变量
+        let currentDate = new Date(2024, 11, 1); // 2024年12月
+        let selectedDate = null;
+        let showOnlyToday = false;
+
+        // 计算任务状态
+        const getTaskStatus = (dateStr) => {
+            const dayTasks = mockTasks.filter(task => task.dueDate === dateStr);
+            if (dayTasks.length === 0) return null;
+            
+            const completedTasks = dayTasks.filter(task => task.completed).length;
+            const totalTasks = dayTasks.length;
+            
+            if (completedTasks === 0) return 'red';      // 全部未完成
+            if (completedTasks === totalTasks) return 'green'; // 全部完成
+            return 'orange'; // 部分完成
         };
 
-        const hideAuthModal = () => {
-            authModal.classList.remove('visible');
-            authForm.reset();
-        };
-
-        // 测试按钮事件
-        testLoginBtn.addEventListener('click', () => {
-            console.log('测试登录按钮被点击');
-            showAuthModal('login');
-        });
-
-        testRegisterBtn.addEventListener('click', () => {
-            console.log('测试注册按钮被点击');
-            showAuthModal('register');
-        });
-
-        testCalendarBtn.addEventListener('click', () => {
-            alert('2024年12月15日的任务：\n\n• 完成数学作业 (待完成)\n• 复习英语单词 (已完成)');
-        });
-
-        // 原始按钮事件
-        loginBtn.addEventListener('click', () => {
-            console.log('原始登录按钮被点击');
-            showAuthModal('login');
-        });
-
-        registerBtn.addEventListener('click', () => {
-            console.log('原始注册按钮被点击');
-            showAuthModal('register');
-        });
-
-        // 模态框关闭事件
-        authCancelBtn.addEventListener('click', hideAuthModal);
-        authModal.addEventListener('click', (e) => e.target === authModal && hideAuthModal());
-
-        // 模拟日历点击
-        document.querySelectorAll('.day-cell').forEach(dayElement => {
-            dayElement.addEventListener('click', () => {
-                const day = dayElement.textContent;
-                if (day === '15') {
-                    alert(`2024年12月${day}日的任务：\n\n• 完成数学作业 (待完成)\n• 复习英语单词 (已完成)`);
-                } else if (day === '17') {
-                    alert(`2024年12月${day}日的任务：\n\n• 准备期末考试 (待完成)`);
-                } else {
-                    alert(`2024年12月${day}日没有任务`);
-                }
+        // 渲染任务列表
+        const renderTasks = () => {
+            taskList.innerHTML = '';
+            
+            let tasksToShow = mockTasks;
+            if (showOnlyToday && selectedDate) {
+                tasksToShow = mockTasks.filter(task => task.dueDate === selectedDate);
+            }
+            
+            if (tasksToShow.length === 0) {
+                const message = showOnlyToday && selectedDate ? '当天没有任务' : '没有任务数据';
+                taskList.innerHTML = `<p class="text-gray-400 text-center py-8">${message}</p>`;
+                return;
+            }
+            
+            // 按日期排序
+            tasksToShow.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+            
+            tasksToShow.forEach(task => {
+                const isHighlighted = selectedDate && task.dueDate === selectedDate;
+                const el = document.createElement('div');
+                el.className = `task-item flex items-center justify-between p-4 bg-gray-50 rounded-xl transition-all duration-300 ${
+                    task.completed ? 'opacity-60' : ''
+                } ${isHighlighted ? 'task-item-highlight' : ''} ${
+                    showOnlyToday || !selectedDate || isHighlighted ? '' : 'task-item-filtered'
+                }`;
+                
+                el.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <input type="checkbox" ${task.completed ? 'checked' : ''} 
+                               class="task-checkbox h-5 w-5 rounded border-gray-300 text-blue-600 cursor-pointer"
+                               data-task-id="${task.id}">
+                        <div>
+                            <p class="font-semibold text-gray-800 ${task.completed ? 'line-through' : ''}">${task.name}</p>
+                            <p class="text-sm text-gray-500">
+                                <i class="far fa-calendar-alt mr-1"></i> ${task.dueDate}
+                                ${isHighlighted ? '<span class="ml-2 px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full">当天任务</span>' : ''}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs px-2 py-1 rounded-full ${
+                            task.completed 
+                                ? 'bg-green-100 text-green-600' 
+                                : 'bg-orange-100 text-orange-600'
+                        }">
+                            ${task.completed ? '已完成' : '待完成'}
+                        </span>
+                    </div>`;
+                
+                // 添加复选框事件
+                const checkbox = el.querySelector('.task-checkbox');
+                checkbox.addEventListener('change', (e) => {
+                    const taskId = parseInt(e.target.dataset.taskId);
+                    const task = mockTasks.find(t => t.id === taskId);
+                    if (task) {
+                        task.completed = e.target.checked;
+                        renderTasks();
+                        renderCalendar(); // 重新渲染日历以更新状态小点
+                        updateSelectedDateInfo();
+                    }
+                });
+                
+                taskList.appendChild(el);
             });
+        };
+
+        // 更新选中日期信息
+        const updateSelectedDateInfo = () => {
+            if (!selectedDate) {
+                selectedDateElement.textContent = '请点击日历选择日期';
+                taskSummaryElement.textContent = '点击日期查看任务详情';
+                return;
+            }
+            
+            const date = new Date(selectedDate);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            
+            selectedDateElement.textContent = `${year}年${month}月${day}日`;
+            
+            const dayTasks = mockTasks.filter(task => task.dueDate === selectedDate);
+            if (dayTasks.length === 0) {
+                taskSummaryElement.textContent = '当天没有安排任务';
+            } else {
+                const completedCount = dayTasks.filter(task => task.completed).length;
+                const totalCount = dayTasks.length;
+                taskSummaryElement.textContent = `共 ${totalCount} 个任务，已完成 ${completedCount} 个`;
+            }
+        };
+
+        // 渲染日历
+        const renderCalendar = () => {
+            calendarGrid.innerHTML = '';
+            const month = currentDate.getMonth();
+            const year = currentDate.getFullYear();
+            
+            calendarMonthYear.textContent = `${year}年 ${month + 1}月`;
+
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // 添加空白单元格
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                calendarGrid.innerHTML += `<div class="p-2"></div>`;
+            }
+
+            // 添加日期单元格
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const today = new Date();
+                const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+                const isSelected = selectedDate === dateStr;
+                const taskStatus = getTaskStatus(dateStr);
+
+                let dayClasses = 'day-cell flex items-center justify-center h-12 w-12 rounded-full cursor-pointer transition-all duration-200 ';
+                if (isToday) {
+                    dayClasses += 'bg-blue-500 text-white font-bold ';
+                } else if (isSelected) {
+                    dayClasses += 'selected-day font-bold ';
+                } else {
+                    dayClasses += 'hover:bg-gray-100 ';
+                }
+
+                const dayElement = document.createElement('div');
+                dayElement.className = dayClasses;
+                dayElement.textContent = day;
+                
+                // 添加状态小点
+                if (taskStatus) {
+                    const dot = document.createElement('div');
+                    dot.className = `status-dot ${taskStatus}`;
+                    dayElement.appendChild(dot);
+                }
+                
+                // 添加点击事件
+                dayElement.addEventListener('click', () => {
+                    // 移除之前选中的样式
+                    document.querySelectorAll('.selected-day').forEach(el => {
+                        el.classList.remove('selected-day');
+                    });
+                    
+                    // 添加选中样式
+                    if (!isToday) {
+                        dayElement.classList.add('selected-day');
+                    }
+                    
+                    selectedDate = dateStr;
+                    updateSelectedDateInfo();
+                    renderTasks();
+                });
+                
+                calendarGrid.appendChild(dayElement);
+            }
+        };
+
+        // 事件监听器
+        prevMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
         });
 
-        console.log('测试页面加载完成');
-        console.log('authModal:', authModal);
-        console.log('loginBtn:', loginBtn);
-        console.log('registerBtn:', registerBtn);
+        nextMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        showAllBtn.addEventListener('click', () => {
+            showOnlyToday = false;
+            showAllBtn.classList.add('bg-blue-100', 'text-blue-600');
+            showAllBtn.classList.remove('bg-gray-100', 'text-gray-600');
+            showTodayBtn.classList.add('bg-gray-100', 'text-gray-600');
+            showTodayBtn.classList.remove('bg-blue-100', 'text-blue-600');
+            renderTasks();
+        });
+
+        showTodayBtn.addEventListener('click', () => {
+            showOnlyToday = true;
+            showTodayBtn.classList.add('bg-blue-100', 'text-blue-600');
+            showTodayBtn.classList.remove('bg-gray-100', 'text-gray-600');
+            showAllBtn.classList.add('bg-gray-100', 'text-gray-600');
+            showAllBtn.classList.remove('bg-blue-100', 'text-blue-600');
+            renderTasks();
+        });
+
+        // 初始化
+        renderCalendar();
+        renderTasks();
+        
+        console.log('日历功能测试页面加载完成');
     </script>
 </body>
 </html> 

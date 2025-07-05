@@ -16,6 +16,42 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* 任务状态小点样式 */
+        .status-dot {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .status-dot.red { background-color: #ef4444; }
+        .status-dot.orange { background-color: #f97316; }
+        .status-dot.green { background-color: #22c55e; }
+        
+        .day-cell {
+            position: relative;
+        }
+        
+        .selected-day {
+            border: 2px solid #3b82f6 !important;
+            background-color: #dbeafe !important;
+        }
+        
+        .task-item-filtered {
+            opacity: 0.3;
+            transform: scale(0.95);
+            transition: all 0.3s ease;
+        }
+        
+        .task-item-highlight {
+            opacity: 1;
+            transform: scale(1);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            border-left: 4px solid #3b82f6;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 font-sans antialiased">
 
@@ -43,13 +79,31 @@
             <!-- Left Column: Tasks and Progress -->
             <div class="lg:col-span-2 space-y-8">
                 
-                <!-- Task List Section -->
+                <!-- Current Day Tasks Section -->
                 <section class="bg-white p-6 rounded-2xl shadow-lg shadow-gray-200/50">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-2xl font-bold text-gray-700">学习任务</h2>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-700">当日任务</h2>
+                            <p id="selected-date-info" class="text-sm text-gray-500 mt-1">点击日历选择日期查看当天任务</p>
+                        </div>
                         <button id="add-task-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-transform transform hover:scale-105 flex items-center gap-2">
                             <i class="fas fa-plus"></i> 添加任务
                         </button>
+                    </div>
+                    <div id="today-task-list" class="space-y-3 mt-6 min-h-[150px]">
+                        <!-- JS will populate this -->
+                    </div>
+                </section>
+
+                <!-- All Tasks Overview Section -->
+                <section class="bg-white p-6 rounded-2xl shadow-lg shadow-gray-200/50">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-2xl font-bold text-gray-700">任务总览</h2>
+                        <div class="flex gap-2">
+                            <button id="show-completed-btn" class="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors">
+                                <i class="fas fa-eye"></i> 显示已完成
+                            </button>
+                        </div>
                     </div>
                     <div id="task-list" class="space-y-3 mt-6 min-h-[200px]">
                         <!-- JS will populate this -->
@@ -66,25 +120,49 @@
 
             </div>
 
-            <!-- Right Column: Calendar -->
-            <aside class="bg-white p-6 rounded-2xl shadow-lg shadow-gray-200/50">
-                <div id="calendar" class="w-full">
-                    <div class="flex items-center justify-between mb-4">
-                        <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                            <i class="fas fa-chevron-left text-gray-600"></i>
-                        </button>
-                        <h3 id="calendar-month-year" class="text-xl font-bold text-gray-700"></h3>
-                        <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                            <i class="fas fa-chevron-right text-gray-600"></i>
-                        </button>
-                    </div>
-                    <div id="calendar-weekdays" class="grid grid-cols-7 gap-2 text-center text-xs text-gray-500 font-semibold mb-2">
-                        <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
-                    </div>
-                    <div id="calendar-grid" class="grid grid-cols-7 gap-2">
-                        <!-- JS will populate this -->
+            <!-- Right Column: Calendar and Status -->
+            <aside class="space-y-6">
+                
+                <!-- Calendar Section -->
+                <div class="bg-white p-6 rounded-2xl shadow-lg shadow-gray-200/50">
+                    <div id="calendar" class="w-full">
+                        <div class="flex items-center justify-between mb-4">
+                            <button id="prev-month-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                                <i class="fas fa-chevron-left text-gray-600"></i>
+                            </button>
+                            <h3 id="calendar-month-year" class="text-xl font-bold text-gray-700"></h3>
+                            <button id="next-month-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                                <i class="fas fa-chevron-right text-gray-600"></i>
+                            </button>
+                        </div>
+                        <div id="calendar-weekdays" class="grid grid-cols-7 gap-2 text-center text-xs text-gray-500 font-semibold mb-2">
+                            <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+                        </div>
+                        <div id="calendar-grid" class="grid grid-cols-7 gap-2">
+                            <!-- JS will populate this -->
+                        </div>
                     </div>
                 </div>
+
+                <!-- Calendar Status Legend -->
+                <div class="bg-white p-4 rounded-2xl shadow-lg shadow-gray-200/50">
+                    <h3 class="text-lg font-bold text-gray-700 mb-3">状态说明</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                            <span>全部未完成</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 bg-orange-500 rounded-full"></div>
+                            <span>部分完成</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                            <span>全部完成</span>
+                        </div>
+                    </div>
+                </div>
+
             </aside>
         </main>
     </div>

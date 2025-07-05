@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let tasks = [];
     let token = localStorage.getItem('token') || null;
     let isLoggedIn = !!token;
+    let selectedDate = null; // 当前选中的日期
+    let showCompletedTasks = false; // 是否显示已完成任务
     
     // --- API 配置 ---
     // 动态检测主机地址，支持本地开发和公网部署
@@ -23,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- DOM 元素 ---
     const taskList = document.getElementById('task-list');
+    const todayTaskList = document.getElementById('today-task-list');
+    const selectedDateInfo = document.getElementById('selected-date-info');
+    const showCompletedBtn = document.getElementById('show-completed-btn');
     const addTaskBtn = document.getElementById('add-task-btn');
     const taskModal = document.getElementById('task-modal');
     const cancelBtn = document.getElementById('cancel-btn');
@@ -56,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const authCancelBtn = document.getElementById('auth-cancel-btn');
 
     // --- 辅助函数：API请求封装 ---
-    const apiFetch = async (endpoint, method, body = null) => {
+    const apiFetch = async (endpoint, method, body = null, suppressAuthErrors = false) => {
         const headers = { 'Content-Type': 'application/json' };
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
@@ -74,8 +79,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return response.status === 204 ? null : await response.json();
         } catch (error) {
             console.error('API Fetch Error:', error);
-            alert(`请求失败: ${error.message}`);
-            if (error.message.includes('token')) handleLogout(); // 如果是token问题，则登出
+            
+            // 如果是认证错误且设置了suppressAuthErrors，则不显示alert
+            const isAuthError = error.message.includes('403') || error.message.includes('401') || error.message.includes('token');
+            if (!(suppressAuthErrors && isAuthError)) {
+                alert(`请求失败: ${error.message}`);
+            }
+            
+            if (isAuthError) handleLogout(); // 如果是token问题，则登出
             throw error;
         }
     };
@@ -145,6 +156,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const getLocalTasks = () => JSON.parse(localStorage.getItem('local_tasks')) || [];
     const saveLocalTasks = (localTasks) => localStorage.setItem('local_tasks', JSON.stringify(localTasks));
     const clearLocalTasks = () => localStorage.removeItem('local_tasks');
+    
+    // --- 日历状态计算 ---
+    const getTaskStatus = (dateStr) => {
+        const dayTasks = tasks.filter(task => task.dueDate === dateStr);
+        if (dayTasks.length === 0) return null;
+        
+        const completedTasks = dayTasks.filter(task => task.completed).length;
+        const totalTasks = dayTasks.length;
+        
+        if (completedTasks === 0) return 'red';      // 全部未完成
+        if (completedTasks === totalTasks) return 'green'; // 全部完成
+        return 'orange'; // 部分完成
+    };
     const syncLocalTasksAndFetch = async () => {
         const localTasks = getLocalTasks();
         if (localTasks.length > 0) {
@@ -161,7 +185,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 任务管理 ---
     const fetchTasks = async () => {
-        tasks = isLoggedIn ? await apiFetch('/tasks', 'GET') : getLocalTasks();
+        if (isLoggedIn) {
+            try {
+                tasks = await apiFetch('/tasks', 'GET', null, true); // 设置suppressAuthErrors为true
+            } catch (error) {
+                // 如果API请求失败，fallback到本地任务
+                console.log('获取服务器任务失败，使用本地任务');
+                tasks = getLocalTasks();
+            }
+        } else {
+            tasks = getLocalTasks();
+        }
         renderAll();
     };
     const handleTaskSubmit = async (e) => {
@@ -222,53 +256,139 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const hideTaskModal = () => taskModal.classList.remove('visible');
 
-    // --- 日历日期点击功能 ---
-    const showDayTasks = (dateStr, day, month, year) => {
-        const dayTasks = tasks.filter(task => task.dueDate === dateStr);
+    // --- 日历点击处理 ---
+    const handleDateClick = (dateStr) => {
+        // 移除之前选中的样式
+        document.querySelectorAll('.selected-day').forEach(el => {
+            el.classList.remove('selected-day');
+        });
         
+        selectedDate = dateStr;
+        updateSelectedDateInfo();
+        renderTodayTasks();
+        renderTasks(); // 重新渲染任务总览以更新高亮效果
+    };
+    
+    const updateSelectedDateInfo = () => {
+        if (!selectedDate) {
+            selectedDateInfo.textContent = '点击日历选择日期查看当天任务';
+            return;
+        }
+        
+        const date = new Date(selectedDate);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        
+        const dayTasks = tasks.filter(task => task.dueDate === selectedDate);
         if (dayTasks.length === 0) {
-            alert(`${year}年${month}月${day}日没有任务`);
+            selectedDateInfo.textContent = `${year}年${month}月${day}日 - 没有安排任务`;
         } else {
-            const taskNames = dayTasks.map(task => 
-                `• ${task.name} ${task.completed ? '(已完成)' : '(待完成)'}`
-            ).join('\n');
-            alert(`${year}年${month}月${day}日的任务：\n\n${taskNames}`);
+            const completedCount = dayTasks.filter(task => task.completed).length;
+            const totalCount = dayTasks.length;
+            selectedDateInfo.textContent = `${year}年${month}月${day}日 - 共${totalCount}个任务，已完成${completedCount}个`;
         }
     };
 
     // --- 渲染逻辑 ---
+    const renderTodayTasks = () => {
+        todayTaskList.innerHTML = '';
+        
+        if (!selectedDate) {
+            todayTaskList.innerHTML = `<p class="text-gray-400 text-center py-8">点击日历选择日期查看当天任务</p>`;
+            return;
+        }
+        
+        const todayTasks = tasks.filter(task => task.dueDate === selectedDate);
+        
+        if (todayTasks.length === 0) {
+            todayTaskList.innerHTML = `<p class="text-gray-400 text-center py-8">当天没有安排任务</p>`;
+            return;
+        }
+        
+        todayTasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+        todayTasks.forEach(task => {
+            const el = createTaskElement(task, true);
+            todayTaskList.appendChild(el);
+        });
+    };
+    
     const renderTasks = () => {
         taskList.innerHTML = '';
+        
         if (tasks.length === 0) {
             taskList.innerHTML = `<p class="text-gray-400 text-center">没有任务，点击"添加任务"开始吧！</p>`;
             return;
         }
-        tasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-        tasks.forEach(task => {
-            const el = document.createElement('div');
-            el.className = `task-item flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:shadow-md transition-shadow duration-300 ${task.completed ? 'opacity-60' : ''}`;
-            el.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <input type="checkbox" ${task.completed ? 'checked' : ''} class="task-checkbox h-5 w-5 rounded border-gray-300 text-blue-600 cursor-pointer">
-                    <div>
-                        <p class="font-semibold text-gray-800 ${task.completed ? 'line-through' : ''}">${task.name}</p>
-                        <p class="text-sm text-gray-500"><i class="far fa-calendar-alt mr-1"></i> ${task.dueDate}</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button class="edit-task-btn text-gray-400 hover:text-blue-500 p-2 rounded-full"><i class="fas fa-edit"></i></button>
-                    <button class="delete-task-btn text-gray-400 hover:text-red-500 p-2 rounded-full"><i class="fas fa-trash-alt"></i></button>
-                </div>`;
-            
-            el.querySelector('.task-checkbox').addEventListener('change', (e) => handleTaskToggle(task.id, e.target.checked));
-            el.querySelector('.edit-task-btn').addEventListener('click', () => showTaskModal(task));
-            el.querySelector('.delete-task-btn').addEventListener('click', () => {
-                el.classList.add('removing');
-                setTimeout(() => handleTaskDelete(task.id), 300);
-            });
-            
+        
+        let tasksToShow = tasks;
+        if (!showCompletedTasks) {
+            tasksToShow = tasks.filter(task => !task.completed);
+        }
+        
+        if (tasksToShow.length === 0 && !showCompletedTasks) {
+            taskList.innerHTML = `<p class="text-gray-400 text-center">所有任务都已完成！🎉</p>`;
+            return;
+        }
+        
+        tasksToShow.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+        tasksToShow.forEach(task => {
+            const isHighlighted = selectedDate && task.dueDate === selectedDate;
+            const el = createTaskElement(task, false, isHighlighted);
             taskList.appendChild(el);
         });
+    };
+    
+    const createTaskElement = (task, isTodayTask = false, isHighlighted = false) => {
+        const el = document.createElement('div');
+        let className = `task-item flex items-center justify-between p-4 bg-gray-50 rounded-xl transition-all duration-300 ${
+            task.completed ? 'opacity-60' : ''
+        }`;
+        
+        if (isHighlighted) {
+            className += ' task-item-highlight';
+        }
+        
+        el.className = className;
+        el.innerHTML = `
+            <div class="flex items-center gap-4">
+                <input type="checkbox" ${task.completed ? 'checked' : ''} 
+                       class="task-checkbox h-5 w-5 rounded border-gray-300 text-blue-600 cursor-pointer"
+                       data-task-id="${task.id}">
+                <div>
+                    <p class="font-semibold text-gray-800 ${task.completed ? 'line-through' : ''}">${task.name}</p>
+                    <p class="text-sm text-gray-500">
+                        <i class="far fa-calendar-alt mr-1"></i> ${task.dueDate}
+                        ${isTodayTask ? '<span class="ml-2 px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full">当天任务</span>' : ''}
+                        ${isHighlighted ? '<span class="ml-2 px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full">选中日期</span>' : ''}
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs px-2 py-1 rounded-full ${
+                    task.completed 
+                        ? 'bg-green-100 text-green-600' 
+                        : 'bg-orange-100 text-orange-600'
+                }">
+                    ${task.completed ? '已完成' : '待完成'}
+                </span>
+                <button class="edit-task-btn text-gray-400 hover:text-blue-500 p-2 rounded-full"><i class="fas fa-edit"></i></button>
+                <button class="delete-task-btn text-gray-400 hover:text-red-500 p-2 rounded-full"><i class="fas fa-trash-alt"></i></button>
+            </div>`;
+        
+        // 添加事件监听器
+        const checkbox = el.querySelector('.task-checkbox');
+        checkbox.addEventListener('change', (e) => {
+            handleTaskToggle(task.id, e.target.checked);
+        });
+        
+        el.querySelector('.edit-task-btn').addEventListener('click', () => showTaskModal(task));
+        el.querySelector('.delete-task-btn').addEventListener('click', () => {
+            el.classList.add('removing');
+            setTimeout(() => handleTaskDelete(task.id), 300);
+        });
+        
+        return el;
     };
     
     let currentDate = new Date();
@@ -281,36 +401,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const firstDayOfMonth = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        
-        const tasksByDate = tasks.reduce((acc, task) => {
-            (acc[task.dueDate] = acc[task.dueDate] || []).push(task);
-            return acc;
-        }, {});
 
-        // Add empty cells for days before the first day of the month
+        // 添加空白单元格
         for (let i = 0; i < firstDayOfMonth; i++) {
             calendarGrid.innerHTML += `<div class="p-2"></div>`;
         }
 
+        // 添加日期单元格
         for (let day = 1; day <= daysInMonth; day++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const today = new Date();
             const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+            const isSelected = selectedDate === dateStr;
+            const taskStatus = getTaskStatus(dateStr);
 
-            let dayClasses = 'day-cell flex items-center justify-center h-10 w-10 rounded-full cursor-pointer transition-colors ';
+            let dayClasses = 'day-cell flex items-center justify-center h-12 w-12 rounded-full cursor-pointer transition-all duration-200 ';
             if (isToday) {
                 dayClasses += 'bg-blue-500 text-white font-bold ';
+            } else if (isSelected) {
+                dayClasses += 'selected-day font-bold ';
             } else {
                 dayClasses += 'hover:bg-gray-100 ';
-            }
-            if (tasksByDate[dateStr]) {
-                 dayClasses += 'has-tasks';
             }
 
             const dayElement = document.createElement('div');
             dayElement.className = dayClasses;
             dayElement.textContent = day;
-            dayElement.addEventListener('click', () => showDayTasks(dateStr, day, month + 1, year));
+            
+            // 添加状态小点
+            if (taskStatus) {
+                const dot = document.createElement('div');
+                dot.className = `status-dot ${taskStatus}`;
+                dayElement.appendChild(dot);
+            }
+            
+            // 添加点击事件
+            dayElement.addEventListener('click', () => {
+                if (!isToday) {
+                    dayElement.classList.add('selected-day');
+                }
+                handleDateClick(dateStr);
+            });
+            
             calendarGrid.appendChild(dayElement);
         }
     };
@@ -356,8 +488,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderAll = () => {
         renderTasks();
+        renderTodayTasks();
         renderCalendar();
         renderChart();
+        updateSelectedDateInfo();
     };
 
     // --- 初始化和事件监听 ---
@@ -387,6 +521,15 @@ document.addEventListener('DOMContentLoaded', () => {
         taskForm.addEventListener('submit', handleTaskSubmit);
         cancelBtn.addEventListener('click', hideTaskModal);
         taskModal.addEventListener('click', (e) => e.target === taskModal && hideTaskModal());
+
+        // 显示完成任务切换按钮
+        showCompletedBtn.addEventListener('click', () => {
+            showCompletedTasks = !showCompletedTasks;
+            showCompletedBtn.innerHTML = showCompletedTasks 
+                ? '<i class="fas fa-eye-slash"></i> 隐藏已完成' 
+                : '<i class="fas fa-eye"></i> 显示已完成';
+            renderTasks();
+        });
 
         // 日历导航
         prevMonthBtn.addEventListener('click', () => {

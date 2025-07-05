@@ -270,6 +270,26 @@ app.get('/', (req, res) => {
   res.send('学习计划后端API正在运行!');
 });
 
+// 健康检查端点
+app.get('/api/health', (req, res) => {
+  // 检查数据库连接状态
+  db.get('SELECT 1', (err, result) => {
+    if (err) {
+      return res.status(500).json({ 
+        status: 'error', 
+        message: '数据库连接失败',
+        error: err.message 
+      });
+    }
+    res.status(200).json({ 
+      status: 'ok', 
+      message: '服务正常运行',
+      timestamp: new Date().toISOString(),
+      version: '2.1'
+    });
+  });
+});
+
 // --- 启动服务器 ---
 app.listen(PORT, () => {
   console.log(`后端服务器正在 http://localhost:${PORT} 上运行`);
