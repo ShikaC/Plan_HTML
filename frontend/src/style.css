@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 任务状态小点样式 */
+.status-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.red { 
+  background-color: #ef4444; 
+}
+
+.status-dot.orange { 
+  background-color: #f97316; 
+}
+
+.status-dot.green { 
+  background-color: #22c55e; 
+}
+
+.day-cell {
+  position: relative;
+}
+
+.selected-day {
+  border: 2px solid #3b82f6 !important;
+  background-color: #dbeafe !important;
+}
+
+.task-item-filtered {
+  opacity: 0.3;
+  transform: scale(0.95);
+  transition: all 0.3s ease;
+}
+
+.task-item-highlight {
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  border-left: 4px solid #3b82f6;
+}
+
+/* 模态框动画 */
+.modal-enter-active, .modal-leave-active {
+  transition: all 0.3s ease;
+}
+
+.modal-enter-from, .modal-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+/* 任务列表动画 */
+.task-enter-active, .task-leave-active {
+  transition: all 0.3s ease;
+}
+
+.task-enter-from, .task-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.task-move {
+  transition: transform 0.3s ease;
+} 
